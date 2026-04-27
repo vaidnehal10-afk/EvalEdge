@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EvalEdge — Student Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset & Tokens ──────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #080c14;
+  --surface:   #0e1422;
+  --card:      #131929;
+  --border:    #1e2d47;
+  --accent:    #2563eb;
+  --accent2:   #0ea5e9;
+  --gold:      #f59e0b;
+  --success:   #10b981;
+  --danger:    #ef4444;
+  --text:      #e2e8f0;
+  --muted:     #64748b;
+  --tag-bg:    rgba(37,99,235,0.15);
+  --phase1:    #7c3aed;
+  --phase2:    #0891b2;
+  --phase3:    #059669;
+  --radius:    14px;
+  --shadow:    0 8px 32px rgba(0,0,0,0.45);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Utility ─────────────────────────────────────── */
+.hidden { display: none !important; }
+.flex   { display: flex; }
+.col    { flex-direction: column; }
+.gap2   { gap: 8px; }
+.gap4   { gap: 16px; }
+.gap6   { gap: 24px; }
+
+/* ── Animated Background ─────────────────────────── */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(37,99,235,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37,99,235,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+.bg-glow {
+  position: fixed; z-index: 0; pointer-events: none;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.18;
+}
+.glow1 { width:600px;height:600px;background:#2563eb;top:-200px;left:-150px; }
+.glow2 { width:500px;height:500px;background:#0ea5e9;bottom:-100px;right:-100px; }
+
+/* ── Login Screen ─────────────────────────────────── */
+#loginScreen {
+  position: relative; z-index: 10;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.login-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 56px 48px;
+  width: 420px;
+  box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.03);
+  animation: fadeUp 0.6s ease both;
+}
+
+.login-logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px; font-weight: 800;
+  background: linear-gradient(135deg, #60a5fa, #38bdf8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.login-tagline {
+  font-size: 13px; color: var(--muted);
+  margin-bottom: 40px;
+  letter-spacing: 0.04em;
+}
+
+.field-label {
+  font-size: 11px; font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.field-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  margin-bottom: 20px;
+}
+.field-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
+}
+
+.btn-login {
+  width: 100%;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  color: #fff;
+  border: none; border-radius: 10px;
+  padding: 15px;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  margin-top: 8px;
+}
+.btn-login:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-login:active { transform: translateY(0); }
+
+.login-error {
+  color: var(--danger);
+  font-size: 13px;
+  margin-top: 14px;
+  text-align: center;
+  min-height: 18px;
+}
+
+/* ── Dashboard Layout ────────────────────────────── */
+#dashboard {
+  position: relative; z-index: 10;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+  animation: fadeUp 0.5s ease both;
+}
+
+/* ── Topbar ───────────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 36px;
+  height: 68px;
+  background: rgba(13,20,36,0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.topbar-logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800;
+  background: linear-gradient(135deg, #60a5fa, #38bdf8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.topbar-user {
+  display: flex; align-items: center; gap: 12px;
+}
+.avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 700; color: #fff;
+}
+.topbar-name {
+  font-size: 14px; font-weight: 500;
+}
+.btn-logout {
+  background: rgba(239,68,68,0.12);
+  color: var(--danger);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-logout:hover { background: rgba(239,68,68,0.22); }
+
+/* ── Main Content ────────────────────────────────── */
+.main-content {
+  flex: 1;
+  padding: 36px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Profile Card ────────────────────────────────── */
+.profile-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  display: flex; align-items: center; gap: 28px;
+  margin-bottom: 32px;
+  position: relative; overflow: hidden;
+}
+.profile-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #2563eb, #0ea5e9, #7c3aed);
+}
+.profile-avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 26px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+}
+.profile-info h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 700;
+  margin-bottom: 6px;
+}
+.profile-meta {
+  display: flex; gap: 20px; flex-wrap: wrap;
+}
+.profile-tag {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--tag-bg);
+  border: 1px solid rgba(37,99,235,0.2);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 13px; color: #93c5fd;
+}
+
+/* ── Section Title ───────────────────────────────── */
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+/* ── PBL Cards ───────────────────────────────────── */
+.pbl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 36px;
+}
+.pbl-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  position: relative; overflow: hidden;
+}
+.pbl-card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(37,99,235,0.07), transparent);
+  opacity: 0; transition: opacity 0.2s;
+}
+.pbl-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(37,99,235,0.18); }
+.pbl-card:hover::after { opacity: 1; }
+.pbl-card.active-card { border-color: var(--accent); }
+.pbl-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 20px;
+  margin-bottom: 12px;
+}
+.status-active   { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+.status-completed{ background: rgba(245,158,11,0.15);  color: var(--gold);    border: 1px solid rgba(245,158,11,0.3); }
+.status-inactive { background: rgba(100,116,139,0.15); color: var(--muted);   border: 1px solid rgba(100,116,139,0.3); }
+.pbl-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px; font-weight: 700;
+  margin-bottom: 8px;
+}
+.pbl-desc { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 14px; }
+.pbl-teacher { font-size: 12px; color: #60a5fa; }
+
+/* ── PBL Detail Panel ────────────────────────────── */
+#pblDetail {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.detail-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.detail-header h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px; font-weight: 700;
+}
+.btn-back {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px; cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-back:hover { background: var(--border); }
+
+/* ── Phase Tabs ───────────────────────────────────── */
+.phase-tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+}
+.phase-tab {
+  padding: 16px 28px;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  position: relative; bottom: -1px;
+}
+.phase-tab:hover { color: var(--text); }
+.phase-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.phase-tab[data-phase="1"].active { border-bottom-color: var(--phase1); color: #a78bfa; }
+.phase-tab[data-phase="2"].active { border-bottom-color: var(--phase2); color: #38bdf8; }
+.phase-tab[data-phase="3"].active { border-bottom-color: var(--phase3); color: #34d399; }
+
+/* ── Phase Content ───────────────────────────────── */
+.phase-content { padding: 32px; display: none; }
+.phase-content.active { display: block; animation: fadeUp 0.3s ease; }
+
+.phase-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+@media (max-width: 700px) {
+  .phase-grid { grid-template-columns: 1fr; }
+  .login-box { padding: 36px 24px; width: 95vw; }
+  .main-content { padding: 20px; }
+}
+
+/* ── Score Widget ────────────────────────────────── */
+.score-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 28px;
+}
+.score-circle {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.score-circle svg {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.score-number {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800;
+  position: relative; z-index: 1;
+}
+.score-label { font-size: 10px; color: var(--muted); position: relative; z-index: 1; }
+.score-info h4 {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px; font-weight: 700;
+  margin-bottom: 4px;
+}
+.score-info p { font-size: 13px; color: var(--muted); }
+
+/* ── Info Blocks ─────────────────────────────────── */
+.info-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+.info-block-title {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.info-block-title span { font-size: 16px; }
+.info-block p {
+  font-size: 14px; line-height: 1.7;
+  color: var(--text);
+}
+
+/* ── Attendance ──────────────────────────────────── */
+.attendance-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  grid-column: 1 / -1;
+}
+.meets-row { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+.meet-card {
+  flex: 1; min-width: 180px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+}
+.meet-dot {
+  width: 40px; height: 40px; border-radius: 50%;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.dot-present { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); }
+.dot-absent  { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3); }
+.dot-pending { background: rgba(100,116,139,0.12); border: 1px solid rgba(100,116,139,0.3); }
+.meet-info strong { display: block; font-size: 13px; font-weight: 600; }
+.meet-info span   { font-size: 12px; color: var(--muted); }
+.attend-summary {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+}
+.attend-badge {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px; font-weight: 800;
+}
+
+/* ── Phase color bands ───────────────────────────── */
+.band-1 { --pc: var(--phase1); }
+.band-2 { --pc: var(--phase2); }
+.band-3 { --pc: var(--phase3); }
+.phase-band {
+  height: 3px;
+  background: var(--pc);
+  border-radius: 2px;
+  margin-bottom: 24px;
+  opacity: 0.6;
+}
+
+/* ── Not evaluated notice ────────────────────────── */
+.not-eval {
+  text-align: center;
+  padding: 40px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.not-eval .icon { font-size: 36px; margin-bottom: 12px; }
+
+/* ── Loading ─────────────────────────────────────── */
+.loading-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px;
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.loading-text {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px; color: var(--muted);
+}
+
+/* ── Keyframes ───────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+
+<!-- Background decoration -->
+<div class="bg-grid"></div>
+<div class="bg-glow glow1"></div>
+<div class="bg-glow glow2"></div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading your dashboard…</div>
+</div>
+
+<!-- ── LOGIN ────────────────────────────────────────── -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">EvalEdge</div>
+    <div class="login-tagline">Student Evaluation Portal</div>
+
+    <div class="field-label">Student ID</div>
+    <input type="number" id="loginId" class="field-input" placeholder="e.g. 1001" />
+
+    <div class="field-label">Password</div>
+    <input type="password" id="loginPass" class="field-input" placeholder="Enter your password" />
+
+    <button class="btn-login" onclick="handleLogin()">Sign In →</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ─────────────────────────────────────── -->
+<div id="dashboard" class="hidden">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-logo">EvalEdge</div>
+    <div class="topbar-user">
+      <div class="avatar" id="topAvatar">?</div>
+      <span class="topbar-name" id="topName">Student</span>
+      <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <div class="main-content">
+
+    <!-- Profile -->
+    <div class="profile-card" id="profileCard">
+      <div class="profile-avatar" id="profileAvatar">?</div>
+      <div class="profile-info">
+        <h2 id="profileName">—</h2>
+        <div class="profile-meta">
+          <div class="profile-tag">🎓 <span id="profileCourse">—</span></div>
+          <div class="profile-tag">📅 Semester <span id="profileSem">—</span></div>
+          <div class="profile-tag">🆔 ID: <span id="profileId">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PBL List -->
+    <div id="pblListSection">
+      <div class="section-title">Your PBL Projects</div>
+      <div class="pbl-grid" id="pblGrid">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- PBL Detail -->
+    <div id="pblDetail" class="hidden">
+      <div class="detail-header">
+        <h3 id="detailTitle">PBL Title</h3>
+        <button class="btn-back" onclick="showPblList()">← Back to Projects</button>
+      </div>
+
+      <!-- Phase Tabs -->
+      <div class="phase-tabs">
+        <div class="phase-tab active" data-phase="1" onclick="switchPhase(1)">Phase 1</div>
+        <div class="phase-tab"        data-phase="2" onclick="switchPhase(2)">Phase 2</div>
+        <div class="phase-tab"        data-phase="3" onclick="switchPhase(3)">Phase 3</div>
+      </div>
+
+      <!-- Phase 1 -->
+      <div class="phase-content active band-1" id="phase1Content">
+        <div class="phase-band"></div>
+        <div id="phase1Inner"></div>
+      </div>
+      <!-- Phase 2 -->
+      <div class="phase-content band-2" id="phase2Content">
+        <div class="phase-band"></div>
+        <div id="phase2Inner"></div>
+      </div>
+      <!-- Phase 3 -->
+      <div class="phase-content band-3" id="phase3Content">
+        <div class="phase-band"></div>
+        <div id="phase3Inner"></div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /dashboard -->
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+// Point this to your Java backend API base URL.
+// If you add a servlet / REST layer to Main.java, update accordingly.
+const API_BASE = 'http://localhost:8080';
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentStudent = null;
+let currentPbls    = [];
+let currentPbl     = null;
+let phaseData      = [];  // array of 3 phase objects
+let meetData       = {};  // { 1: [...], 2: [...], 3: [...] }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function showLoading(v) {
+  document.getElementById('loadingOverlay').classList.toggle('hidden', !v);
+}
+function initials(name) {
+  if (!name) return '?';
+  return name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+// ── Login ──────────────────────────────────────────────────────────────────────
+async function handleLogin() {
+  const id   = document.getElementById('loginId').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  const err  = document.getElementById('loginError');
+  err.textContent = '';
+
+  if (!id || !pass) { err.textContent = 'Please enter your Student ID and password.'; return; }
+
+  showLoading(true);
+  try {
+
+const res = await fetch(`${API_BASE}/login?studentId=${id}&password=${encodeURIComponent(pass)}`);
+
+if (!res.ok) {
+   err.textContent = 'Invalid Student ID or Password.';
+   showLoading(false);
+   return;
+}
+
+const data = await res.json();
+
+currentStudent = data.student;
+currentPbls = data.pbls;
+
+renderDashboard();
+
+}
+catch(e){
+    err.textContent = 'Connection error. Is the server running?';
+  }
+  showLoading(false);
+}
+
+// Enter key on login
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('loginScreen').classList.contains('hidden')) {
+    handleLogin();
+  }
+});
+
+// ── Logout ─────────────────────────────────────────────────────────────────────
+function handleLogout() {
+  currentStudent = null; currentPbls = []; currentPbl = null;
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('loginId').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+// ── Render Dashboard ──────────────────────────────────────────────────────────
+function renderDashboard() {
+  const s = currentStudent;
+
+  // Profile
+  const av = initials(s.name);
+  document.getElementById('profileAvatar').textContent = av;
+  document.getElementById('topAvatar').textContent     = av;
+  document.getElementById('topName').textContent       = s.name.split(' ')[0];
+  document.getElementById('profileName').textContent   = s.name;
+  document.getElementById('profileCourse').textContent = s.course;
+  document.getElementById('profileSem').textContent    = s.semester;
+  document.getElementById('profileId').textContent     = s.student_id;
+
+  // PBL Grid
+  const grid = document.getElementById('pblGrid');
+  grid.innerHTML = '';
+  if (!currentPbls.length) {
+    grid.innerHTML = '<p style="color:var(--muted);font-size:14px;">No PBL projects assigned yet.</p>';
+  } else {
+    currentPbls.forEach(pbl => {
+      const card = document.createElement('div');
+      card.className = 'pbl-card';
+      card.onclick = () => openPbl(pbl);
+      card.innerHTML = `
+        <div class="pbl-status status-${pbl.status}">${pbl.status === 'active' ? '● Active' : pbl.status === 'completed' ? '✓ Completed' : '○ Inactive'}</div>
+        <div class="pbl-title">${pbl.title}</div>
+        <div class="pbl-desc">${pbl.description}</div>
+        <div class="pbl-teacher">👤 ${pbl.teacher_name}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  document.getElementById('pblListSection').classList.remove('hidden');
+  document.getElementById('pblDetail').classList.add('hidden');
+}
+
+// ── Open PBL Detail ───────────────────────────────────────────────────────────
+async function openPbl(pbl) {
+  currentPbl = pbl;
+  document.getElementById('detailTitle').textContent = pbl.title;
+  showLoading(true);
+
+  const res = await fetch(`${API_BASE}/pbl-detail?studentId=${currentStudent.student_id}&pblId=${pbl.pbl_id}`);
+const detail = await res.json();
+
+phaseData = detail.phases;
+meetData = detail.meets;
+
+  renderAllPhases();
+  document.getElementById('pblListSection').classList.add('hidden');
+  document.getElementById('pblDetail').classList.remove('hidden');
+  switchPhase(1);
+  showLoading(false);
+}
+
+function showPblList() {
+  document.getElementById('pblListSection').classList.remove('hidden');
+  document.getElementById('pblDetail').classList.add('hidden');
+}
+
+// ── Switch Phase Tab ──────────────────────────────────────────────────────────
+function switchPhase(n) {
+  document.querySelectorAll('.phase-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.phase-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.phase-tab[data-phase="${n}"]`).classList.add('active');
+  document.getElementById(`phase${n}Content`).classList.add('active');
+}
+
+// ── Render Phase Content ──────────────────────────────────────────────────────
+function renderAllPhases() {
+  for (let i = 1; i <= 3; i++) {
+    const ph   = phaseData[i - 1];
+    const ms   = meetData[i] || [];
+    const inner = document.getElementById(`phase${i}Inner`);
+    inner.innerHTML = buildPhaseHTML(ph, ms, i);
+  }
+}
+
+function buildPhaseHTML(ph, meets, phaseNo) {
+  const notEval = !ph.evaluated_at && ph.remarks === 'Not evaluated yet';
+  if (notEval) {
+    return `<div class="not-eval"><div class="icon">🔒</div>Phase ${phaseNo} has not been evaluated yet.<br><span style="font-size:13px;color:var(--muted)">Check back after your teacher completes the review.</span></div>`;
+  }
+
+  const pct       = Math.round((parseFloat(ph.marks) / parseFloat(ph.max_marks)) * 100);
+  const color     = phaseNo === 1 ? '#a78bfa' : phaseNo === 2 ? '#38bdf8' : '#34d399';
+  const trackColor= 'rgba(255,255,255,0.06)';
+  const r         = 38, circ = 2 * Math.PI * r;
+  const dash      = (pct / 100) * circ;
+
+  const attendCount = meets.filter(m => m.attended === 'true' || m.attended === true).length;
+
+  return `
+  <div class="phase-grid">
+
+    <!-- Score -->
+    <div class="score-widget">
+      <div class="score-circle">
+        <svg viewBox="0 0 88 88">
+          <circle cx="44" cy="44" r="${r}" fill="none" stroke="${trackColor}" stroke-width="7"/>
+          <circle cx="44" cy="44" r="${r}" fill="none" stroke="${color}" stroke-width="7"
+            stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
+        </svg>
+        <div class="score-number" style="color:${color}">${ph.marks}</div>
+        <div class="score-label">/ ${ph.max_marks}</div>
+      </div>
+      <div class="score-info">
+        <h4>Phase ${phaseNo} Score</h4>
+        <p>${pct}% — ${pct >= 80 ? '🌟 Excellent' : pct >= 60 ? '👍 Good' : pct >= 40 ? '⚡ Needs Improvement' : '⚠️ Below Average'}</p>
+        ${ph.evaluated_at ? `<p style="font-size:12px;color:var(--muted);margin-top:4px">Evaluated: ${new Date(ph.evaluated_at).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})}</p>` : ''}
+      </div>
+    </div>
+
+    <!-- Remarks -->
+    <div class="info-block">
+      <div class="info-block-title"><span>💬</span> Teacher's Remarks</div>
+      <p>${ph.remarks || '—'}</p>
+    </div>
+
+    <!-- Feedback -->
+    <div class="info-block">
+      <div class="info-block-title"><span>📝</span> Detailed Feedback</div>
+      <p>${ph.feedback || '—'}</p>
+    </div>
+
+    <!-- Attendance -->
+    <div class="attendance-block">
+      <div class="info-block-title"><span>📅</span> Mentorship Meets — Phase ${phaseNo}</div>
+      <div class="meets-row">
+        ${meets.map(m => buildMeetCard(m)).join('')}
+        ${meets.length === 0 ? '<p style="color:var(--muted);font-size:13px;">No meets recorded yet.</p>' : ''}
+      </div>
+      <div class="attend-summary">
+        <span style="color:var(--muted)">Attendance:</span>
+        <span class="attend-badge" style="color:${attendCount === 2 ? 'var(--success)' : attendCount === 1 ? 'var(--gold)' : 'var(--danger)'}">${attendCount}/2</span>
+        <span style="color:var(--muted)">${attendCount === 2 ? '— Full attendance ✅' : attendCount === 1 ? '— Partial' : '— No attendance ⚠️'}</span>
+      </div>
+    </div>
+
+  </div>`;
+}
+
+function buildMeetCard(m) {
+  const att  = m.attended === 'true' || m.attended === true;
+  const pend = m.meet_date === 'Not scheduled';
+  const dotClass = pend ? 'dot-pending' : att ? 'dot-present' : 'dot-absent';
+  const icon     = pend ? '⏳' : att ? '✅' : '❌';
+  const label    = pend ? 'Pending' : att ? 'Present' : 'Absent';
+  return `
+  <div class="meet-card">
+    <div class="meet-dot ${dotClass}">${icon}</div>
+    <div class="meet-info">
+      <strong>Meet ${m.meet_no} — ${label}</strong>
+      <span>${pend ? 'Not yet scheduled' : m.meet_date}${m.notes ? ' · ' + m.notes : ''}</span>
+    </div>
+  </div>`;
+}
+
+// ── Demo Data (replace with real API calls) ───────────────────────────────────
+function getDemoData(id, pass) {
+  const db = {
+    1: { pass: 'pass123', student: { student_id:1, name:'Riya Mehta',   course:'B.Tech Computer Science',     semester:3 }},
+    2: { pass: 'pass456', student: { student_id:2, name:'Aarav Singh',  course:'B.Tech Information Technology',semester:5 }},
+    3: { pass: 'pass789', student: { student_id:3, name:'Priya Kapoor', course:'B.Tech Electronics',           semester:3 }},
+  };
+  const rec = db[id];
+  if (!rec || rec.pass !== pass) return null;
+  return {
+    student: rec.student,
+    pbls: [
+      { pbl_id:1, title:'Smart Attendance System', description:'Build an IoT-based attendance system using RFID and cloud sync.', status:'active', teacher_name:'Dr. Anjali Sharma' },
+      { pbl_id:2, title:'Campus Navigation App',   description:'A Flutter-based app to help new students navigate the campus using AR overlays.', status:'inactive', teacher_name:'Prof. Rakesh Gupta' },
+    ]
+  };
+}
+
+function getDemoPblDetail(studentId, pblId) {
+  if (studentId === 1 && pblId === 1) {
+    return {
+      phases: [
+        { phase_no:1, marks:82, max_marks:100, remarks:'Good understanding of problem statement. Proposal was well-structured.', feedback:'Work on circuit diagrams. The proposal needs more technical depth in hardware selection. Consider adding a component comparison table.',  evaluated_at:'2024-02-20T10:00:00' },
+        { phase_no:2, marks:76, max_marks:100, remarks:'Prototype working but needs refinement in the read module.',              feedback:'Improve RFID read accuracy and debounce the signal. Power consumption analysis is missing — add it before Phase 3. API response time needs optimization.', evaluated_at:'2024-03-19T11:30:00' },
+        { phase_no:3, marks:91, max_marks:100, remarks:'Excellent final delivery with a polished UI and stable hardware.',        feedback:'Outstanding documentation and demo. Cloud sync was seamlessly integrated. The attendance report export feature was a great addition. Well done!', evaluated_at:'2024-04-23T09:45:00' },
+      ],
+      meets: {
+        1: [
+          { meet_no:1, attended:true,  meet_date:'2024-02-05', notes:'Discussed problem scope' },
+          { meet_no:2, attended:true,  meet_date:'2024-02-19', notes:'Reviewed initial proposal' },
+        ],
+        2: [
+          { meet_no:1, attended:true,  meet_date:'2024-03-04', notes:'Prototype review' },
+          { meet_no:2, attended:false, meet_date:'2024-03-18', notes:'Student absent' },
+        ],
+        3: [
+          { meet_no:1, attended:true,  meet_date:'2024-04-08', notes:'Final demo rehearsal' },
+          { meet_no:2, attended:true,  meet_date:'2024-04-22', notes:'Documentation review' },
+        ],
+      }
+    };
+  }
+  // Default empty
+  return {
+    phases: [1,2,3].map(n => ({ phase_no:n, marks:0, max_marks:100, remarks:'Not evaluated yet', feedback:'', evaluated_at:'' })),
+    meets:  { 1:[], 2:[], 3:[] }
+  };
+}
+</script>
+</body>
+</html>
